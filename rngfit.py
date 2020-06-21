@@ -5,8 +5,9 @@ import datetime
 import os
 
 import click
-import pandas as pd
 import numpy as np
+import pandas as pd
+import toml
 
 
 VERSION = '0.0.1'
@@ -42,12 +43,12 @@ def new_user(control):
         print("Creating data folder")
         os.makedirs('data')
 
-    path = 'data/' + control.inf + '.hdf5'
+    path = 'data/' + control.inf + '/'
     if os.path.exists(path):
         print("User already exists")
     else:
         print("Creating user file")
-        data = pd.HDFStore(path)
+        os.makedirs(path)
 
         exercises = pd.DataFrame({
             'name': [],
@@ -62,16 +63,14 @@ def new_user(control):
             'weight': [],
             'rir': [],
         })
+        userstats = pd.DataFrame({
+            'date': [],
+            'bodyweight': [],
+        })
 
-        print(workouts)
-        print(exercises)
-
-        data.put('exercises', exercises, format='table', data_columns=True)
-        data.put('workouts', workouts, format='table', data_columns=True)
-
-        print(data['exercises'])
-
-        data.close()
+        exercises.to_csv(path + 'exercises.csv', index=False)
+        workouts.to_csv(path + 'workouts.csv', index=False)
+        userstats.to_csv(path + 'userstats.csv', index=False)
 
 
 @main.command()
@@ -84,13 +83,16 @@ def add_exercise(control, name, rounding, min_weight, orm_guess):
     """
     Add a new tracked exercise
     """
-
-    path = 'data/' + control.inf + '.hdf5'
+    path = 'data/' + control.inf + '/'
     assert os.path.exists(path)
 
-    with pd.HDFStore(path) as data:
-        pass
-
+    exercises = pd.read_csv(path + 'exercises.csv')
+    exercises = exercises.append({
+        'name': name,
+        'min_weight': min_weight,
+        'rounding': rounding
+    }, ignore_index=True)
+    exercises.to_csv(path + 'exercises.csv', index=False)
 
 
 if __name__ == '__main__':
