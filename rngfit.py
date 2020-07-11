@@ -9,6 +9,8 @@ import numpy as np
 import pandas as pd
 import toml
 
+import particles as prt
+
 
 VERSION = '0.0.1'
 
@@ -50,11 +52,7 @@ def new_user(control):
         print("Creating user file")
         os.makedirs(path)
 
-        exercises = pd.DataFrame({
-            'name': [],
-            'min_weight': [],
-            'rounding': [],
-        })
+        exercises = {}
         workouts = pd.DataFrame({
             'date': [],
             'name': [],
@@ -67,18 +65,29 @@ def new_user(control):
             'date': [],
             'bodyweight': [],
         })
+        history = pd.DataFrame({
+            'name': [],
+            'm_mean': [],
+            'm_std': [],
+            'h_mean': [],
+            'h_std': [],
+            'e_mean': [],
+            'e_std': [],
+        })
 
-        exercises.to_csv(path + 'exercises.csv', index=False)
+        with open(path + 'exercises.toml', 'w') as out_toml:
+            toml.dump(exercises, out_toml)
         workouts.to_csv(path + 'workouts.csv', index=False)
         userstats.to_csv(path + 'userstats.csv', index=False)
+        history.to_csv(path + 'history.csv', index=False)
 
 
 @main.command()
 @pass_control
 @click.option('-n', '--name', type=str)
 @click.option('-r', '--rounding', type=float)
-@click.option('-m', '--min-weight', type=str)
-@click.option('-o', '--orm-guess', type=str)
+@click.option('-m', '--min-weight', type=float)
+@click.option('-o', '--orm-guess', type=float)
 def add_exercise(control, name, rounding, min_weight, orm_guess):
     """
     Add a new tracked exercise
@@ -86,13 +95,25 @@ def add_exercise(control, name, rounding, min_weight, orm_guess):
     path = 'data/' + control.inf + '/'
     assert os.path.exists(path)
 
-    exercises = pd.read_csv(path + 'exercises.csv')
-    exercises = exercises.append({
-        'name': name,
+    with open(path + 'exercises.toml', 'r') as in_toml:
+        exercises = toml.load(in_toml)
+
+    particles = prt.make_particles(orm_guess, orm_guess*0.2)
+    exercises[name] = {
         'min_weight': min_weight,
-        'rounding': rounding
-    }, ignore_index=True)
-    exercises.to_csv(path + 'exercises.csv', index=False)
+        'rounding': rounding,
+        'particles': particles,
+    }
+
+    with open(path + 'exercises.toml', 'w') as out_toml:
+        toml.dump(exercises, out_toml)
+
+    history = pd.read_csv(path + 'history.csv')
+    means, sigmas = prt.estimate(particles)
+    for i, var in enumerate(['m', 'h', 'e']):
+        history[var + '_mean'].append(means[0])
+        history[var + '_std'].append(sigmas[0])
+    history.to_csv(path + 'history.csv', index=False)
 
 
 if __name__ == '__main__':
