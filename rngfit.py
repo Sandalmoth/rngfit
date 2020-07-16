@@ -3,8 +3,10 @@
 
 import datetime
 import os
+import re
 import subprocess
 import sys
+import tempfile
 
 import click
 import numpy as np
@@ -150,6 +152,45 @@ def session(control, resume):
     for name in set(session['name']):
         assert name in exercises
 
+
+def random_choice(m):
+    v = m.group(1).split()
+    return str(np.random.choice(v))
+
+def find_weight(rirset):
+    rs = [float(x) for x in rirset.groups()]
+    print(rs)
+
+@main.command()
+@pass_control
+@click.argument('template', type=click.Path())
+def parse_template(control, template):
+    """
+    Parse a template creating a new workout programme
+    """
+    path = 'data/' + control.inf + '/'
+    assert os.path.exists(path)
+
+    with open(path + 'exercises.toml', 'r') as in_toml:
+        exercises = toml.load(in_toml)
+
+    # parsing works each line in the following steps
+    # randomly select a value in brackets
+    re_rng = re.compile(r'\[([0-9\s\.]+)\]')
+    # replace 1x2@3p4 with 1x2@[w]p4 where
+    # [w] is a weight such that the last set has @3 rir
+    re_rirset = re.compile(r'(\d+\.?\d*)x(\d+\.?\d*)@(\d+\.?\d*)p(\d+\.?\d*)')
+
+    with open(template, 'r') as input:
+        # with tempfile.NamedTemporaryFile(suffix=".tmp") as program:
+        for line in input:
+            line = re.sub(re_rng, random_choice, line)
+            print(line, end='')
+            rirset = re_rirset.search(line)
+            if rirset:
+                find_weight(rirset)
+
+    print('')
 
 if __name__ == '__main__':
 	main()
