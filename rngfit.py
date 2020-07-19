@@ -18,8 +18,13 @@ from scipy.optimize import minimize
 import particles as prt
 
 
-VERSION = '0.0.1'
+VERSION = '0.0.2'
 EDITOR = os.environ.get('EDITOR', 'vim') # https://stackoverflow.com/a/39989442
+
+
+def iso_to_date(iso):
+    y, m, d = re.match(r'(\d+)-(\d+)-(\d+)', iso).groups()
+    return datetime.date(int(y), int(m), int(d))
 
 
 class Control():
@@ -73,6 +78,7 @@ def new_user(control):
             'bodyweight': [],
         })
         history = pd.DataFrame({
+            'date': [],
             'name': [],
             'm_mean': [],
             'm_std': [],
@@ -105,21 +111,27 @@ def add_exercise(control, name, rounding, min_weight, orm_guess):
     with open(path + 'exercises.toml', 'r') as in_toml:
         exercises = toml.load(in_toml)
 
-    particles = prt.make_particles(orm_guess, orm_guess*0.2)
+    particles, weights = prt.make_particles(orm_guess, orm_guess*0.2)
     exercises[name] = {
         'min_weight': min_weight,
         'rounding': rounding,
         'particles': particles,
+        'weights': weights,
     }
 
     with open(path + 'exercises.toml', 'w') as out_toml:
         toml.dump(exercises, out_toml)
 
     history = pd.read_csv(path + 'history.csv')
-    means, sigmas = prt.estimate(particles)
+    means, sigmas = prt.estimate(particles, weights)
+    new_row = {
+        'name': name,
+        'date': datetime.date.today(),
+    }
     for i, var in enumerate(['m', 'h', 'e']):
-        history[var + '_mean'].append(means[0])
-        history[var + '_std'].append(sigmas[0])
+        new_row[var + '_mean'] = means[0]
+        new_row[var + '_std'] = sigmas[0]
+    history = history.append(new_row, ignore_index=True)
     history.to_csv(path + 'history.csv', index=False)
 
 
@@ -159,9 +171,29 @@ def random_choice(m):
     v = m.group(1).split()
     return str(np.random.choice(v))
 
-def find_weight(rirset, history):
+def find_weight(name, rirset, history):
+    # rirset has format sets, reps, rir, rest
     rs = [float(x) for x in rirset.groups()]
-    print(rs)
+    name = name.groups(1)[0]
+    print(name, rs)
+    ability = history[history['name'] == name].iloc[[-1]]
+    print(ability)
+
+    rir = [None for x in range(rirset[0])]
+    rir[-1] = rirset[2]
+    work = {
+        'time': np.arange(rirset[0])*rirset[3],
+        'reps': [rirset[2]]*[rirset[0]],
+        'rir': rir,
+        'weight',
+    }
+
+    res = minimize(
+        lambda x: ,
+        (100),
+        bouds=(0, None)
+        method='L-BFGS-B'
+    )
 
 @main.command()
 @pass_control
@@ -184,6 +216,7 @@ def parse_template(control, template):
     re_rng = re.compile(r'\[([0-9\s\.]+)\]')
     # replace 1x2@3p4 with 1x2@[w]p4 where
     # [w] is a weight such that the last set has @3 rir
+    re_name = re.compile(r'([A-Za-z]+)\s.*')
     re_rirset = re.compile(r'(\d+\.?\d*)x(\d+\.?\d*)@(\d+\.?\d*)p(\d+\.?\d*)')
 
     with open(template, 'r') as input:
@@ -191,9 +224,10 @@ def parse_template(control, template):
         for line in input:
             line = re.sub(re_rng, random_choice, line)
             print(line, end='')
+            name = re_name.match(line)
             rirset = re_rirset.search(line)
-            if rirset:
-                find_weight(rirset, history)
+            if name and rirset:
+                find_weight(name, rirset, history)
 
     print('')
 
