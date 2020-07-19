@@ -13,6 +13,8 @@ import numpy as np
 import pandas as pd
 import toml
 
+from scipy.optimize import minimize
+
 import particles as prt
 
 
@@ -157,7 +159,7 @@ def random_choice(m):
     v = m.group(1).split()
     return str(np.random.choice(v))
 
-def find_weight(rirset):
+def find_weight(rirset, history):
     rs = [float(x) for x in rirset.groups()]
     print(rs)
 
@@ -174,6 +176,9 @@ def parse_template(control, template):
     with open(path + 'exercises.toml', 'r') as in_toml:
         exercises = toml.load(in_toml)
 
+    history = pd.read_csv(path + 'history.csv')
+    print(history)
+
     # parsing works each line in the following steps
     # randomly select a value in brackets
     re_rng = re.compile(r'\[([0-9\s\.]+)\]')
@@ -188,7 +193,7 @@ def parse_template(control, template):
             print(line, end='')
             rirset = re_rirset.search(line)
             if rirset:
-                find_weight(rirset)
+                find_weight(rirset, history)
 
     print('')
 

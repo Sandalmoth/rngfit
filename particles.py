@@ -12,6 +12,22 @@ H_OU_SPRING = 0.01
 RIR_SIGMA = 0.5
 
 
+def inverse_epley(m, h, w):
+    return 1 + h*(m/w - 1)
+
+
+def predict_rir(m, h, e, work):
+    rir = []
+    penalty = 0
+    tprev = 0
+    for t, r, w in zip(work['time'], work['reps'], work['weight']):
+        penalty = max(penalty - m*e*(t - tprev), 0)
+        rir.append(inverse_epley(m - penalty, h, w) - r)
+        penalty += r*w/h
+        tprev = t
+    work['est_rir'] = rir
+
+
 def make_particles(m_guess, m_std):
     """
     Setup particle filter for a new exercise
