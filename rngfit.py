@@ -27,6 +27,16 @@ def iso_to_date(iso):
     return datetime.date(int(y), int(m), int(d))
 
 
+def roundto(a, target):
+    """
+    round values of a to nearest multiple of target
+    """
+    a /= target
+    a = np.round(a)
+    a *= target
+    return a
+
+
 class Control():
 	def __init__(self):
 		self.verbose = False
@@ -171,41 +181,58 @@ def random_choice(m):
     v = m.group(1).split()
     return str(np.random.choice(v))
 
-def generate_and_fit(x, work, ability):
-    work['weight'] = [x[0] for __ in range(len(work['time']))]
+def generate_and_fit(x, work, ability, first):
+    if 'weight' not in work:
+        work['weight'] = [x[0] for __ in range(len(work['time']))]
+    else:
+        if len(work['weight']) < len(work['time']):
+            work['weight'] += [x[0] for __ in range(
+                len(work['time']) - len(work['weight'])
+            )]
+        for i in range(first, len(work['time'])):
+            work['weight'][i] = x[0]
+
     prt.predict_rir(
         ability['m_mean'][0], ability['h_mean'][0], ability['e_mean'][0], work
     )
     return abs(work['est_rir'][-1] - work['rir'][-1])
 
-def find_weight(name, rirset, history):
+def find_weight(name, rirset, history, prework=None, prerirset=None):
     # rirset has format sets, reps, rir, rest
     rs = [float(x) for x in rirset.groups()]
     rs[0] = int(rs[0])
     rs[1] = int(rs[1])
-    name = name.groups(1)[0]
-    print(name, rs)
+    prerest = None
+    if prerirset:
+        prerest = float(prerirset.groups()[3])
+    prelen = 0
+    if prework:
+        prelen = len(prework['time'])
     ability = history[history['name'] == name].iloc[[-1]]
-    print(ability)
 
     rir = [None for x in range(rs[0])]
     rir[-1] = rs[2]
-    work = {
-        'time': np.arange(rs[0])*rs[3],
-        'reps': [rs[1] for __ in range(rs[0])],
-        'rir': rir,
-    }
-    # generate_and_fit.work = work
-    # generate_and_fit.ability = ability
+    if prework is None:
+        work = {
+                'time': list(np.arange(rs[0])*rs[3]),
+                'reps': [rs[1] for __ in range(rs[0])],
+                'rir': rir,
+        }
+    else:
+        work = prework
+        work['time'] += list(np.arange(rs[0])*rs[3] + max(prework['time']) + prerest)
+        work['reps'] += [rs[1] for __ in range(rs[0])]
+        work['rir'] += rir
 
     res = minimize(
-        lambda x: generate_and_fit(x, work, ability),
-        100,
+        lambda x: generate_and_fit(x, work, ability, prelen),
+        0.75*ability['m_mean'][0],
         bounds=[(0, None)],
-        method='L-BFGS-B'
+        method='L-BFGS-B',
+        options={'eps': 1e-10}
     )
-    print(work)
-    print(res)
+
+    return res.x[0], work
 
 @main.command()
 @pass_control
@@ -226,20 +253,34 @@ def parse_template(control, template):
     # parsing works each line in the following steps
     # randomly select a value in brackets
     re_rng = re.compile(r'\[([0-9\s\.]+)\]')
-    # replace 1x2@3p4 with 1x2@[w]p4 where
+    # replace 1x2@3p4 with 1x2x[w]p4 where
     # [w] is a weight such that the last set has @3 rir
     re_name = re.compile(r'([A-Za-z]+)\s.*')
     re_rirset = re.compile(r'(\d+\.?\d*)x(\d+\.?\d*)@(\d+\.?\d*)p(\d+\.?\d*)')
 
     with open(template, 'r') as input:
         # with tempfile.NamedTemporaryFile(suffix=".tmp") as program:
+        prename = None
+        prerirset = None
+        prework = None
         for line in input:
             line = re.sub(re_rng, random_choice, line)
             print(line, end='')
             name = re_name.match(line)
+            if name:
+                name = name.groups(1)[0]
+            if name != prename:
+                prerirset = None
+                prework = None
+            prename = name
             rirset = re_rirset.search(line)
             if name and rirset:
-                find_weight(name, rirset, history)
+                weight, prework = find_weight(name, rirset, history, prework, prerirset)
+                # print('weight', weight, roundto(weight, exercises[name]['rounding']))
+                wr = roundto(weight, exercises[name]['rounding'])
+                rs = rirset.groups()
+                print(name, ' ', rs[0], 'x', rs[1], 'x', wr, 'p', rs[3], sep='')
+            prerirset = rirset
 
     print('')
 
