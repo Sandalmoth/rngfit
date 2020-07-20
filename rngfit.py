@@ -129,8 +129,8 @@ def add_exercise(control, name, rounding, min_weight, orm_guess):
         'date': datetime.date.today(),
     }
     for i, var in enumerate(['m', 'h', 'e']):
-        new_row[var + '_mean'] = means[0]
-        new_row[var + '_std'] = sigmas[0]
+        new_row[var + '_mean'] = means[i]
+        new_row[var + '_std'] = sigmas[i]
     history = history.append(new_row, ignore_index=True)
     history.to_csv(path + 'history.csv', index=False)
 
@@ -171,29 +171,41 @@ def random_choice(m):
     v = m.group(1).split()
     return str(np.random.choice(v))
 
+def generate_and_fit(x, work, ability):
+    work['weight'] = [x[0] for __ in range(len(work['time']))]
+    prt.predict_rir(
+        ability['m_mean'][0], ability['h_mean'][0], ability['e_mean'][0], work
+    )
+    return abs(work['est_rir'][-1] - work['rir'][-1])
+
 def find_weight(name, rirset, history):
     # rirset has format sets, reps, rir, rest
     rs = [float(x) for x in rirset.groups()]
+    rs[0] = int(rs[0])
+    rs[1] = int(rs[1])
     name = name.groups(1)[0]
     print(name, rs)
     ability = history[history['name'] == name].iloc[[-1]]
     print(ability)
 
-    rir = [None for x in range(rirset[0])]
-    rir[-1] = rirset[2]
+    rir = [None for x in range(rs[0])]
+    rir[-1] = rs[2]
     work = {
-        'time': np.arange(rirset[0])*rirset[3],
-        'reps': [rirset[2]]*[rirset[0]],
+        'time': np.arange(rs[0])*rs[3],
+        'reps': [rs[1] for __ in range(rs[0])],
         'rir': rir,
-        'weight',
     }
+    # generate_and_fit.work = work
+    # generate_and_fit.ability = ability
 
     res = minimize(
-        lambda x: ,
-        (100),
-        bouds=(0, None)
+        lambda x: generate_and_fit(x, work, ability),
+        100,
+        bounds=[(0, None)],
         method='L-BFGS-B'
     )
+    print(work)
+    print(res)
 
 @main.command()
 @pass_control
