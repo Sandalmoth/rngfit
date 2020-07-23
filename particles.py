@@ -12,17 +12,45 @@ H_OU_SPRING = 0.01
 RIR_SIGMA = 0.5
 
 
+def inverse_epley(m, h, w):
+    return 1 + h*(m/w - 1)
+
+
+def predict_rir(m, h, e, work):
+    rir = []
+    penalty = 0
+    tprev = 0
+    for t, r, w in zip(work['time'], work['reps'], work['weight']):
+        penalty = max(penalty - m*e*(t - tprev), 0)
+        rir.append(inverse_epley(m - penalty, h, w) - r)
+        penalty += r*w/h
+        tprev = t
+    work['est_rir'] = rir
+
+
+def neff(weights):
+    return 1. / np.sum(np.square(weights))
+
+
+def resample_from_index(particles, weights, indexes):
+    particles[:] = particles[indexes]
+    weights.resize(len(particles))
+    weights.fill (1.0 / len(weights))
+
+
 def make_particles(m_guess, m_std):
     """
     Setup particle filter for a new exercise
     """
-    particles = np.random.normal(size=(PARTICLE_COUNT, 6))
+    particles = np.random.normal(size=(PARTICLE_COUNT, 4))
     means = (0, m_guess, H_MEAN, E_MEAN)
     sigmas = (0, m_std, H_STD, E_STD)
-    for i in range(6):
+    for i in range(4):
         particles[:, i] = means[i] + sigmas[i]*particles[:, i]
     particles[:, 1:] = np.clip(particles[:, 1:], a_min=1.e-3, a_max=None)
-    return particles
+    weights = np.ones(PARTICLE_COUNT)/PARTICLE_COUNT
+
+    return particles, weights
 
 
 def predict(particles, dt, sigmas=PREDICT_SIGMAS):

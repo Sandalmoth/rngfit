@@ -13,11 +13,28 @@ import numpy as np
 import pandas as pd
 import toml
 
+from scipy.optimize import minimize
+
 import particles as prt
 
 
-VERSION = '0.0.1'
+VERSION = '0.0.2'
 EDITOR = os.environ.get('EDITOR', 'vim') # https://stackoverflow.com/a/39989442
+
+
+def iso_to_date(iso):
+    y, m, d = re.match(r'(\d+)-(\d+)-(\d+)', iso).groups()
+    return datetime.date(int(y), int(m), int(d))
+
+
+def roundto(a, target):
+    """
+    round values of a to nearest multiple of target
+    """
+    a /= target
+    a = np.round(a)
+    a *= target
+    return a
 
 
 class Control():
@@ -71,6 +88,7 @@ def new_user(control):
             'bodyweight': [],
         })
         history = pd.DataFrame({
+            'date': [],
             'name': [],
             'm_mean': [],
             'm_std': [],
@@ -103,21 +121,27 @@ def add_exercise(control, name, rounding, min_weight, orm_guess):
     with open(path + 'exercises.toml', 'r') as in_toml:
         exercises = toml.load(in_toml)
 
-    particles = prt.make_particles(orm_guess, orm_guess*0.2)
+    particles, weights = prt.make_particles(orm_guess, orm_guess*0.2)
     exercises[name] = {
         'min_weight': min_weight,
         'rounding': rounding,
         'particles': particles,
+        'weights': weights,
     }
 
     with open(path + 'exercises.toml', 'w') as out_toml:
         toml.dump(exercises, out_toml)
 
     history = pd.read_csv(path + 'history.csv')
-    means, sigmas = prt.estimate(particles)
+    means, sigmas = prt.estimate(particles, weights)
+    new_row = {
+        'name': name,
+        'date': datetime.date.today(),
+    }
     for i, var in enumerate(['m', 'h', 'e']):
-        history[var + '_mean'].append(means[0])
-        history[var + '_std'].append(sigmas[0])
+        new_row[var + '_mean'] = means[i]
+        new_row[var + '_std'] = sigmas[i]
+    history = history.append(new_row, ignore_index=True)
     history.to_csv(path + 'history.csv', index=False)
 
 
@@ -157,9 +181,58 @@ def random_choice(m):
     v = m.group(1).split()
     return str(np.random.choice(v))
 
-def find_weight(rirset):
+def generate_and_fit(x, work, ability, first):
+    if 'weight' not in work:
+        work['weight'] = [x[0] for __ in range(len(work['time']))]
+    else:
+        if len(work['weight']) < len(work['time']):
+            work['weight'] += [x[0] for __ in range(
+                len(work['time']) - len(work['weight'])
+            )]
+        for i in range(first, len(work['time'])):
+            work['weight'][i] = x[0]
+
+    prt.predict_rir(
+        ability['m_mean'][0], ability['h_mean'][0], ability['e_mean'][0], work
+    )
+    return abs(work['est_rir'][-1] - work['rir'][-1])
+
+def find_weight(name, rirset, history, prework=None, prerirset=None):
+    # rirset has format sets, reps, rir, rest
     rs = [float(x) for x in rirset.groups()]
-    print(rs)
+    rs[0] = int(rs[0])
+    rs[1] = int(rs[1])
+    prerest = None
+    if prerirset:
+        prerest = float(prerirset.groups()[3])
+    prelen = 0
+    if prework:
+        prelen = len(prework['time'])
+    ability = history[history['name'] == name].iloc[[-1]]
+
+    rir = [None for x in range(rs[0])]
+    rir[-1] = rs[2]
+    if prework is None:
+        work = {
+                'time': list(np.arange(rs[0])*rs[3]),
+                'reps': [rs[1] for __ in range(rs[0])],
+                'rir': rir,
+        }
+    else:
+        work = prework
+        work['time'] += list(np.arange(rs[0])*rs[3] + max(prework['time']) + prerest)
+        work['reps'] += [rs[1] for __ in range(rs[0])]
+        work['rir'] += rir
+
+    res = minimize(
+        lambda x: generate_and_fit(x, work, ability, prelen),
+        0.75*ability['m_mean'][0],
+        bounds=[(0, None)],
+        method='L-BFGS-B',
+        options={'eps': 1e-10}
+    )
+
+    return res.x[0], work
 
 @main.command()
 @pass_control
@@ -174,21 +247,40 @@ def parse_template(control, template):
     with open(path + 'exercises.toml', 'r') as in_toml:
         exercises = toml.load(in_toml)
 
+    history = pd.read_csv(path + 'history.csv')
+    print(history)
+
     # parsing works each line in the following steps
     # randomly select a value in brackets
     re_rng = re.compile(r'\[([0-9\s\.]+)\]')
-    # replace 1x2@3p4 with 1x2@[w]p4 where
+    # replace 1x2@3p4 with 1x2x[w]p4 where
     # [w] is a weight such that the last set has @3 rir
+    re_name = re.compile(r'([A-Za-z]+)\s.*')
     re_rirset = re.compile(r'(\d+\.?\d*)x(\d+\.?\d*)@(\d+\.?\d*)p(\d+\.?\d*)')
 
     with open(template, 'r') as input:
         # with tempfile.NamedTemporaryFile(suffix=".tmp") as program:
+        prename = None
+        prerirset = None
+        prework = None
         for line in input:
             line = re.sub(re_rng, random_choice, line)
             print(line, end='')
+            name = re_name.match(line)
+            if name:
+                name = name.groups(1)[0]
+            if name != prename:
+                prerirset = None
+                prework = None
+            prename = name
             rirset = re_rirset.search(line)
-            if rirset:
-                find_weight(rirset)
+            if name and rirset:
+                weight, prework = find_weight(name, rirset, history, prework, prerirset)
+                # print('weight', weight, roundto(weight, exercises[name]['rounding']))
+                wr = roundto(weight, exercises[name]['rounding'])
+                rs = rirset.groups()
+                print(name, ' ', rs[0], 'x', rs[1], 'x', wr, 'p', rs[3], sep='')
+            prerirset = rirset
 
     print('')
 
