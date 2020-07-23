@@ -1,0 +1,26 @@
+exercises = [ "squat", "deadlift", "benchpress", "press", "frontsquat", "row", ]
+
+[squat]
+rounding = 2.5
+amraps = "date,reps,weight\r\n2019-07-01,1,155\r\n2019-07-01,10,120\r\n"
+
+[deadlift]
+rounding = 2.5
+amraps = "date,reps,weight\r\n2019-07-01,1,200\r\n2019-07-01,10,152.5\r\n"
+
+[benchpress]
+rounding = 2.5
+amraps = "date,reps,weight\r\n2019-07-01,1,100\r\n2019-07-01,10,75\r\n"
+
+[press]
+rounding = 1
+amraps = "date,reps,weight\r\n2019-07-01,1,65\r\n2019-07-01,10,50\r\n"
+
+[row]
+rounding = 2.5
+amraps = "date,reps,weight\r\n2019-07-01,1,100\r\n2019-07-01,10,75\r\n"
+
+[frontsquat]
+rounding = 2.5
+amraps = "date,reps,weight\r\n2019-07-01,1,130\r\n2019-07-01,10,100\r\n"
+

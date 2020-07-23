@@ -1,0 +1,70 @@
+Note: This program uses automatic planning for squats, benchpress, press,
+close-grip bench, paused deadlifts and rows; but leaves programming 
+cleans, triceps, chinups, lat-pulldowns and facepulls to the user
+(because that fit me at the moment).
+closegrip and pausedead are based on ability in bench and deadlift.
+Process it using 'amraplanner.py'. It is a simple form of planning that
+requires rested amrap sets to fail for tracking progress.
+Replace 1RM and 10RM in amrap.toml with your own.
+
+Order the exercises by your priorities, consider supersets between unrelated 
+or antagonist movements patterns. However, maintain internal set structure,
+i.e. do the amrap set for an exercise first (albeit after warmup).
+This is intended to be done 1x2x3xx 4x1x2xx (3 days/week rolling).
+
+Workouts are randomly selected from options within brackets.
+- a 2x3;r4 means 2 sets of 2 reps with a 7RM weight (3 reps + 4 rir = 7)
+- a 3x4;f0.5 means 3 sets of 4 reps with an 8RM weight (4/0.5 = 8)
+Enter the results (reps & weight) for the amrap sets into the program.
+They are used to schedule future sessions more accurately and track progress.
+Only parts of this file within brackets are modified.
+
+Day 1
+
+squat [1x1;r0, 1x2;r0, 1x3;r0, 1x4;r0, 1x5;r0, 1x6;r0, 1x7;r0, 1x8;r0, 1x9;r0, 1x10;r0] amrap
+squat [5x5;f0.35, 5x4;f0.35, 5x3;f0.35]
+row [1x4;r0, 1x6;r0, 1x8;r0, 1x10;r0] amrap
+row [2x6;f0.5, 2x8;f0.5, 2x10;f0.5]
+benchpress [2x3;r2, 2x2;r1, 2x1;r1]
+benchpress [3x10;f0.4, 3x8;f0.4, 3x6;f0.4]
+latpull 3x8-12
+powerclean 5x2
+tricep 3x8-12
+
+
+Day 2
+
+deadlift [1x1;r0, 1x2;r0, 1x3;r0, 1x4;r0, 1x5;r0, 1x6;r0, 1x7;r0, 1x8;r0, 1x9;r0, 1x10;r0] amrap
+deadlift [5x5;f0.35, 5x4;f0.35, 5x3;f0.35]
+press [2x3;r2, 2x2;r1, 2x1;r1]
+press [3x10;f0.4, 3x8;f0.4, 3x6;f0.4]
+frontsquat [2x3;r2, 2x2;r1, 2x1;r1]
+frontsquat [3x10;f0.4, 3x8;f0.4, 3x6;f0.4]
+benchpress [3x4;f0.6, 3x5;f0.6, 3x6;f0.6] closegrip
+chins 3x5-10
+facepulls 3x10-15
+
+
+Day 3
+
+benchpress [1x1;r0, 1x2;r0, 1x3;r0, 1x4;r0, 1x5;r0, 1x6;r0, 1x7;r0, 1x8;r0, 1x9;r0, 1x10;r0] amrap
+benchpress [5x5;f0.35, 5x4;f0.35, 5x3;f0.35]
+squat [2x3;r2, 2x2;r1, 2x1;r1]
+squat [3x10;f0.4, 3x8;f0.4, 3x6;f0.4]
+row [3x6;f0.5, 3x8;f0.5, 3x10;f0.5]
+latpull 3x8-12
+powercleans 5x2
+triceps 3x8-12
+
+
+Day 4
+
+press [1x1;r0, 1x2;r0, 1x3;r0, 1x4;r0, 1x5;r0, 1x6;r0, 1x7;r0, 1x8;r0, 1x9;r0, 1x10;r0] amrap
+press [5x5;f0.35, 5x4;f0.35, 5x3;f0.35]
+frontsquat [1x1;r0, 1x2;r0, 1x3;r0, 1x4;r0, 1x5;r0, 1x6;r0, 1x7;r0, 1x8;r0, 1x9;r0, 1x10;r0] amrap
+frontsquat [5x5;f0.35, 5x4;f0.35, 5x3;f0.35]
+deadlift [3x3;f0.2, 3x2;f0.2, 3x1;f0.2] paused
+benchpress [3x4;f0.6, 3x5;f0.6, 3x6;f0.6] closegrip
+chins 3x5-10
+facepulls 3x10-15
+
