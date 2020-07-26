@@ -63,7 +63,7 @@ press [1x1;r0, 1x2;r0, 1x3;r0, 1x4;r0, 1x5;r0, 1x6;r0, 1x7;r0, 1x8;r0, 1x9;r0, 1
 press [5x5;f0.35, 5x4;f0.35, 5x3;f0.35]
 frontsquat [1x1;r0, 1x2;r0, 1x3;r0, 1x4;r0, 1x5;r0, 1x6;r0, 1x7;r0, 1x8;r0, 1x9;r0, 1x10;r0] amrap
 frontsquat [5x5;f0.35, 5x4;f0.35, 5x3;f0.35]
-deadlift [3x3;f0.2, 3x2;f0.2, 3x1;f0.2] paused
+deadlift [5x3;f0.2, 5x2;f0.2, 5x1;f0.2] paused
 benchpress [3x4;f0.6, 3x5;f0.6, 3x6;f0.6] closegrip
 chins 3x5-10
 facepulls 3x10-15

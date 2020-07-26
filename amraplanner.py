@@ -82,6 +82,32 @@ def round_to(x, base):
     return base * round(float(x) / base)
 
 
+def moving_median(v, window=5):
+    e = (window - 1) / 2
+    mm = []
+    for i in range(len(v)):
+        imin = int(i - e) if i - e > 0 else 0
+        imax = int(i + e + 1) if i + e < len(v) else len(v)
+        sample = sorted(v[imin:imax])
+        x = int(len(sample) / 2)
+        if len(sample) % 2 == 0:
+            mm.append((sample[x - 1] + sample[x]) / 2)
+        else:
+            mm.append(sample[x])
+    return mm
+
+
+def moving_mean(v, window=5):
+    e = (window - 1) / 2
+    mm = []
+    for i in range(len(v)):
+        imin = int(i - e) if i - e > 0 else 0
+        imax = int(i + e + 1) if i + e < len(v) else len(v)
+        sample = sorted(v[imin:imax])
+        mm.append(sum(sample) / len(sample))
+    return mm
+
+
 class Control():
 	def __init__(self):
 		self.dbfile = None
@@ -98,33 +124,57 @@ def main(control, dbfile):
 
 
 @main.command()
-@click.argument('exercise', type=str)
-@click.argument('amrap', type=str)
+@click.argument('name', type=str)
+@click.argument('data', type=str)
 @click.option('-d', '--date', type=str)
 @pass_control
-def entry(control, exercise, amrap, date):
+def entry(control, name, data, date):
     db = toml.load(control.dbfile)
 
     if date == None:
         date = datetime.date.today()
 
-    reps, weight = re.match(r'(\d+)x(\d+\.?\d*)', amrap).groups()
-    csv_buffer = StringIO(db[exercise]['amraps'])
-    fieldnames = csv_buffer.__next__()
-    fieldnames = fieldnames.rstrip()
-    fieldnames = fieldnames.split(',')
-    csv_buffer.seek(0, 2)
-    wtr = csv.DictWriter(csv_buffer, fieldnames=fieldnames)
-    wtr.writerow(
-        {
-            'date': date,
-            'reps': reps,
-            'weight': weight,
-        }
-    )
+    if name in db:
 
-    csv_buffer.seek(0)
-    db[exercise]['amraps'] = csv_buffer.read()
+        reps, weight = re.match(r'(\d+)x(\d+\.?\d*)', data).groups()
+        csv_buffer = StringIO(db[name]['datas'])
+        fieldnames = csv_buffer.__next__()
+        fieldnames = fieldnames.rstrip()
+        fieldnames = fieldnames.split(',')
+        csv_buffer.seek(0, 2)
+        wtr = csv.DictWriter(csv_buffer, fieldnames=fieldnames)
+        wtr.writerow(
+            {
+                'date': date,
+                'reps': reps,
+                'weight': weight,
+            }
+        )
+
+        csv_buffer.seek(0)
+        db[name]['datas'] = csv_buffer.read()
+
+    else:
+        # check if name is a measurement
+        if name not in db['measurements']['options']:
+            return
+
+        csv_buffer = StringIO(db['measurements']['data'])
+        fieldnames = csv_buffer.__next__()
+        fieldnames = fieldnames.rstrip()
+        fieldnames = fieldnames.split(',')
+        csv_buffer.seek(0, 2)
+        wtr = csv.DictWriter(csv_buffer, fieldnames=fieldnames)
+        wtr.writerow(
+            {
+                'date': date,
+                'name': name,
+                'measurement': data,
+            }
+        )
+
+        csv_buffer.seek(0)
+        db['measurements']['data'] = csv_buffer.read()
 
     with open(control.dbfile, 'w') as out_toml:
         toml.dump(db, out_toml)
@@ -189,6 +239,7 @@ def plotfit(control):
     grid_size = math.ceil(n_exercises**0.5)
 
     fig, axs = plt.subplots(nrows=grid_size, ncols=grid_size)
+    fig.set_size_inches(grid_size*4, grid_size*3)
 
     for i, exercise in enumerate(db['exercises']):
         this_axs = axs[int(i/grid_size)][i%grid_size]
@@ -234,6 +285,7 @@ def plottime(control, future):
     grid_size = math.ceil(n_exercises**0.5)
 
     fig, axs = plt.subplots(nrows=grid_size, ncols=grid_size)
+    fig.set_size_inches(grid_size*4, grid_size*3)
 
     years = mdates.YearLocator()
     years_fmt = mdates.DateFormatter('%Y')
@@ -281,6 +333,64 @@ def plottime(control, future):
 
     min_date = min([[x.get_xlim()[0] for x in y] for y in axs])[0]
     max_date = max([[x.get_xlim()[1] for x in y] for y in axs])[0]
+    for y in axs:
+        for x in y:
+            x.set_xlim(min_date, max_date)
+
+    plt.tight_layout()
+    plt.show()
+
+
+@main.command()
+@pass_control
+def plotstat(control):
+    db = toml.load(control.dbfile)
+
+    n_measurements = len(db['measurements']['options'])
+    grid_size = math.ceil(max(n_measurements, 4)**0.5)
+
+    fig, axs = plt.subplots(nrows=grid_size, ncols=grid_size)
+    fig.set_size_inches(grid_size*4, grid_size*3)
+
+    years = mdates.YearLocator()
+    years_fmt = mdates.DateFormatter('%Y')
+    months = mdates.MonthLocator()
+    months_fmt = mdates.DateFormatter('%Y-%m')
+    days = mdates.WeekdayLocator(byweekday=MO)
+
+    csv_buffer = StringIO(db['measurements']['data'])
+    rdr = csv.DictReader(csv_buffer)
+    data = {x: [] for x in rdr.fieldnames}
+    for l in rdr:
+        for k, v in l.items():
+            if k == 'date':
+                v = iso_to_date(v)
+            elif k == 'name':
+                v = v
+            elif k == 'measurement':
+                v = float(v)
+            data[k].append(v)
+    data = {k: np.array(v) for k, v in data.items()}
+    print(data)
+
+    for i, measurement in enumerate(db['measurements']['options']):
+        this_axs = axs[int(i/grid_size)][i%grid_size]
+        x_axis = data['date'][data['name'] == measurement]
+        y_axis = data['measurement'][data['name'] == measurement]
+
+        this_axs.scatter(x_axis, y_axis, color='k')
+        this_axs.plot(x_axis, moving_median(y_axis), color='orange')
+        this_axs.plot(x_axis, moving_mean(y_axis), color='blue')
+
+        this_axs.xaxis.set_major_locator(years)
+        this_axs.xaxis.set_major_formatter(years_fmt)
+        this_axs.xaxis.set_minor_locator(months)
+        this_axs.grid(which='minor')
+        this_axs.set_title(measurement)
+        this_axs.format_xdata = mdates.DateFormatter('%Y-%m-%d')
+
+    min_date = min([[x.get_xlim()[0] for x in axs[y]] for y in range(n_measurements)])[0]
+    max_date = max([[x.get_xlim()[1] for x in axs[y]] for y in range(n_measurements)])[0]
     for y in axs:
         for x in y:
             x.set_xlim(min_date, max_date)
