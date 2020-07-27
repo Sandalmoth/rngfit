@@ -137,7 +137,7 @@ def entry(control, name, data, date):
     if name in db:
 
         reps, weight = re.match(r'(\d+)x(\d+\.?\d*)', data).groups()
-        csv_buffer = StringIO(db[name]['datas'])
+        csv_buffer = StringIO(db[name]['amraps'])
         fieldnames = csv_buffer.__next__()
         fieldnames = fieldnames.rstrip()
         fieldnames = fieldnames.split(',')
@@ -152,7 +152,7 @@ def entry(control, name, data, date):
         )
 
         csv_buffer.seek(0)
-        db[name]['datas'] = csv_buffer.read()
+        db[name]['amraps'] = csv_buffer.read()
 
     else:
         # check if name is a measurement
