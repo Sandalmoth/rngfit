@@ -403,7 +403,11 @@ def plotprogram(control, infile):
         this_axs.set_xlabel('INOL')
         this_axs.set_ylabel('Probability density')
 
+    plt.tight_layout()
+    plt.show()
 
+
+@main.command()
 @pass_control
 def plotstat(control):
     db = toml.load(control.dbfile)
