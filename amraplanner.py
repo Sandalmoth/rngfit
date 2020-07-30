@@ -384,13 +384,46 @@ def plotprogram(control, infile):
                 weight = round_to(weight, db[exercise]['rounding'])
                 intensity = 100*weight/db[exercise]['orm']
                 intensity = min(99, intensity) # INOL is ill behaved for >99% intensity
-                inols[exercise][n] += sets*reps/(100.0 - intensity)
+                inol = sets*reps/(100.0 - intensity)
+                inols[exercise][n] += inol
 
-    print('exercise\t\tmean\tstdev')
+    print('\nexercise\t\tmean\tstdev')
     for exercise in db['exercises']:
         u = np.mean(inols[exercise])
         s = np.std(inols[exercise])
         print(exercise.ljust(16), np.round(u, 2), np.round(s, 2), sep='\t')
+
+    print('\nline by line')
+    with open(infile, 'r') as input:
+        input.seek(0)
+        for line in input:
+            plan = re_plan.match(line)
+            if plan is None:
+                continue
+            exercise = plan.groups()[0].rstrip()
+            if exercise not in inols:
+                inols[exercise] = [0.0 for __ in range(num_samples)]
+            options = re_options.findall(plan.groups()[1])
+            print(line, end='')
+            for option in options:
+                sets = int(option[0])
+                reps = int(option[1])
+                vol_marker = option[2]
+                vol = float(option[3])
+                if vol_marker == 'r':
+                    hidden_reps = reps + vol
+                elif vol_marker == 'f':
+                    hidden_reps = reps/vol
+                weight = forward_general_epley(
+                    db[exercise]['orm'],
+                    hidden_reps,
+                    db[exercise]['slope']
+                )
+                weight = round_to(weight, db[exercise]['rounding'])
+                intensity = 100*weight/db[exercise]['orm']
+                intensity = min(99, intensity) # INOL is ill behaved for >99% intensity
+                inol = sets*reps/(100.0 - intensity)
+                print(' ', sets, reps, weight, '\t', inol)
 
     n_exercises = len(db['exercises'])
     grid_size = math.ceil(n_exercises**0.5)
