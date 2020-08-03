@@ -297,9 +297,9 @@ def plottime(control, future):
         this_axs = axs[int(i/grid_size)][i%grid_size]
         amraps = parse_amraps(db[exercise]['amraps'])
         if future:
-            x_axis = [amraps['date'][0] + datetime.timedelta(days=x) for x in range((amraps['date'][-1] - amraps['date'][0]).days)]
+            x_axis = [amraps['date'][0] + datetime.timedelta(days=x) for x in range((amraps['date'][-1] - amraps['date'][0]).days)][2:]
         else:
-            x_axis = amraps['date']
+            x_axis = amraps['date'][2:]
         rm_axis = []
         rm_axis_lower = []
         rm_axis_upper = []

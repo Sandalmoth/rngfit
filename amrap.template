@@ -25,7 +25,7 @@ squat [1x1;r0, 1x2;r0, 1x3;r0, 1x4;r0, 1x5;r0, 1x6;r0, 1x7;r0, 1x8;r0, 1x9;r0, 1
 squat [5x5;f0.35, 5x4;f0.35, 5x3;f0.35]
 row [1x4;r0, 1x6;r0, 1x8;r0, 1x10;r0] amrap
 row [2x6;f0.5, 2x8;f0.5, 2x10;f0.5]
-benchpress [2x3;r2, 2x2;r1, 2x1;r1]
+benchpress [2x3;r4, 2x2;r3, 2x1;r2]
 benchpress [3x10;f0.4, 3x8;f0.4, 3x6;f0.4]
 latpull 3x8-12
 powerclean 5x2
@@ -36,11 +36,11 @@ Day 2
 
 deadlift [1x1;r0, 1x2;r0, 1x3;r0, 1x4;r0, 1x5;r0, 1x6;r0, 1x7;r0, 1x8;r0, 1x9;r0, 1x10;r0] amrap
 deadlift [5x5;f0.35, 5x4;f0.35, 5x3;f0.35]
-press [2x3;r2, 2x2;r1, 2x1;r1]
+press [2x3;r4, 2x2;r3, 2x1;r2]
 press [3x10;f0.4, 3x8;f0.4, 3x6;f0.4]
-frontsquat [2x3;r2, 2x2;r1, 2x1;r1]
+frontsquat [2x3;r4, 2x2;r3, 2x1;r2]
 frontsquat [3x10;f0.4, 3x8;f0.4, 3x6;f0.4]
-benchpress [3x4;f0.6, 3x5;f0.6, 3x6;f0.6] closegrip
+benchpress [3x4;f0.4, 3x5;f0.4, 3x6;f0.4] closegrip
 chins 3x5-10
 facepulls 3x10-15
 
@@ -49,7 +49,7 @@ Day 3
 
 benchpress [1x1;r0, 1x2;r0, 1x3;r0, 1x4;r0, 1x5;r0, 1x6;r0, 1x7;r0, 1x8;r0, 1x9;r0, 1x10;r0] amrap
 benchpress [5x5;f0.35, 5x4;f0.35, 5x3;f0.35]
-squat [2x3;r2, 2x2;r1, 2x1;r1]
+squat [2x3;r4, 2x2;r3, 2x1;r2]
 squat [3x10;f0.4, 3x8;f0.4, 3x6;f0.4]
 row [3x6;f0.5, 3x8;f0.5, 3x10;f0.5]
 latpull 3x8-12
@@ -64,7 +64,7 @@ press [5x5;f0.35, 5x4;f0.35, 5x3;f0.35]
 frontsquat [1x1;r0, 1x2;r0, 1x3;r0, 1x4;r0, 1x5;r0, 1x6;r0, 1x7;r0, 1x8;r0, 1x9;r0, 1x10;r0] amrap
 frontsquat [5x5;f0.35, 5x4;f0.35, 5x3;f0.35]
 deadlift [5x3;f0.2, 5x2;f0.2, 5x1;f0.2] paused
-benchpress [3x4;f0.6, 3x5;f0.6, 3x6;f0.6] closegrip
+benchpress [3x4;f0.4, 3x5;f0.4, 3x6;f0.4] closegrip
 chins 3x5-10
 facepulls 3x10-15
 
