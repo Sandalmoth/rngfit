@@ -293,13 +293,25 @@ def plottime(control, future):
     months_fmt = mdates.DateFormatter('%Y-%m')
     days = mdates.WeekdayLocator(byweekday=MO)
 
+    min_date = 0
+    max_date = 0
+
     for i, exercise in enumerate(db['exercises']):
         this_axs = axs[int(i/grid_size)][i%grid_size]
         amraps = parse_amraps(db[exercise]['amraps'])
+        if len(amraps['date']) <= 3:
+            # not enough data for plot
+            continue
         if future:
-            x_axis = [amraps['date'][0] + datetime.timedelta(days=x) for x in range((amraps['date'][-1] - amraps['date'][0]).days)][2:]
+            x_axis = [amraps['date'][2] + datetime.timedelta(days=x) for x in range((amraps['date'][-1] - amraps['date'][2]).days)]
         else:
             x_axis = amraps['date'][2:]
+        if min_date == 0 and max_date == 0:
+            min_date = min(x_axis)
+            max_date = max(x_axis)
+        else:
+            min_date = min(min_date, min(x_axis))
+            max_date = max(max_date, max(x_axis))
         rm_axis = []
         rm_axis_lower = []
         rm_axis_upper = []
@@ -331,8 +343,6 @@ def plottime(control, future):
         this_axs.set_title(exercise)
         this_axs.format_xdata = mdates.DateFormatter('%Y-%m-%d')
 
-    min_date = min([[x.get_xlim()[0] for x in y] for y in axs])[0]
-    max_date = max([[x.get_xlim()[1] for x in y] for y in axs])[0]
     for y in axs:
         for x in y:
             x.set_xlim(min_date, max_date)
