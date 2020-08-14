@@ -47,7 +47,7 @@ def get_weights(dates, reference_date=None):
 
 
 def fit_rmcurve(amraps, reference_date=None):
-    rps = amraps['reps']
+    rps = amraps['reps'] + amraps['rir']
     wts = amraps['weight']
     age_weights = get_weights(amraps['date'], reference_date)
     res = curve_fit(
@@ -72,6 +72,8 @@ def parse_amraps(amrap_string):
             elif k == 'weight':
                 v = float(v)
             elif k == 'reps':
+                v = int(v)
+            elif k == 'rir':
                 v = int(v)
             amraps[k].append(v)
     amraps = {k: np.array(v) for k, v in amraps.items()}
@@ -136,7 +138,9 @@ def entry(control, name, data, date):
 
     if name in db:
 
-        reps, weight = re.match(r'(\d+)x(\d+\.?\d*)', data).groups()
+        reps, weight, rir = re.match(r'(\d+)x(\d+\.?\d*)r?(\d*)', data).groups()
+        if rir == '':
+            rir = 0
         csv_buffer = StringIO(db[name]['amraps'])
         fieldnames = csv_buffer.__next__()
         fieldnames = fieldnames.rstrip()
@@ -148,6 +152,7 @@ def entry(control, name, data, date):
                 'date': date,
                 'reps': reps,
                 'weight': weight,
+                'rir': rir
             }
         )
 
@@ -253,13 +258,30 @@ def plotfit(control):
         lower_rmcurve = forward_general_epley(orm, x_axis, slope - sigma_slope) - sigma_orm
         this_axs.plot(x_axis, upper_rmcurve, color='lightgrey', linewidth=1.0, linestyle='--')
         this_axs.plot(x_axis, lower_rmcurve, color='lightgrey', linewidth=1.0, linestyle='--')
-        this_axs.scatter(amraps['reps'], amraps['weight'],
-                         s=weights*10,
-                         c=-weights,
+
+        print(amraps['reps'][amraps['rir'] == 0], amraps['weight'][amraps['rir'] == 0])
+
+        this_axs.scatter(amraps['reps'][amraps['rir'] == 0],
+                         amraps['weight'][amraps['rir'] == 0],
+                         s=weights[amraps['rir'] == 0]*10,
+                         c=-weights[amraps['rir'] == 0],
                          norm=Normalize(vmin=-max(weights) - 1,
                                         vmax=0),
                          marker='o',
                          cmap=cm.Greys)
+
+        print((amraps['reps'] + amraps['rir'])[amraps['rir'] != 0], amraps['weight'][amraps['rir'] != 0])
+
+        this_axs.scatter((amraps['reps'] + amraps['rir'])[amraps['rir'] != 0],
+                         amraps['weight'][amraps['rir'] != 0],
+                         s=weights[amraps['rir'] != 0]*10,
+                         c=-weights[amraps['rir'] != 0],
+                         norm=Normalize(vmin=-max(weights) - 1,
+                                        vmax=0),
+                         marker='o',
+                         cmap=cm.BuPu)
+
+
         this_axs.plot(x_axis, rmcurve, color='k')
         this_axs.text(0.6, 0.6,
                       '\n'.join([str(x) + " RM: " + str(
