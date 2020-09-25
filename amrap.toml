@@ -25,5 +25,5 @@ rounding = 2.5
 amraps = "date,reps,weight,rir\r\n2019-07-01,1,130,0\r\n2019-07-01,10,100,0\r\n"
 
 [measurements]
-data = "date,name,measurement\r\n2019-07-01,bodyweight,100\r\n2019-07-02,bodyweight,99.7\r\n"
+data = "date,name,measurement\r\n"
 options = [ "bodyweight",]
