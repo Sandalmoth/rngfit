@@ -300,7 +300,8 @@ def plotfit(control):
 @main.command()
 @pass_control
 @click.option('--future/--no-future', default=True)
-def plottime(control, future):
+@click.option('--allometric/--absolute', default=False)
+def plottime(control, future, allometric):
     db = toml.load(control.dbfile)
 
     n_exercises = len(db['exercises'])
@@ -355,9 +356,67 @@ def plottime(control, future):
                 rm_axis_lower.append([round(forward_general_epley(orm, x, slope - sigma_slope) - sigma_orm, 1) for x in rms])
         if not future:
             x_axis = x_axis[1:]
-        for j, rm in enumerate(rms):
-            this_axs.fill_between(x_axis, [x[j] for x in rm_axis_lower], [x[j] for x in rm_axis_upper], color='lightgrey', alpha=0.5)
-            this_axs.plot(x_axis, [x[j] for x in rm_axis], color='k', linestyle=linestyles[j])
+
+        if allometric:
+            csv_buffer = StringIO(db['measurements']['data'])
+            rdr = csv.DictReader(csv_buffer)
+            data = {x: [] for x in rdr.fieldnames}
+            for l in rdr:
+                for k, v in l.items():
+                    if k == 'date':
+                        v = iso_to_date(v)
+                    elif k == 'name':
+                        v = v
+                    elif k == 'measurement':
+                        v = float(v)
+                    data[k].append(v)
+            data = {k: np.array(v) for k, v in data.items()}
+            print(data)
+
+            bw_x_axis = data['date'][data['name'] == 'bodyweight']
+            bw_x_axis_days = [(x - min(bw_x_axis)).days for x in bw_x_axis]
+            x_axis_days = [(x - min(x_axis)).days for x in x_axis]
+            print(bw_x_axis, x_axis)
+            print(bw_x_axis_days, x_axis_days)
+            bw_y_axis = data['measurement'][data['name'] == 'bodyweight']
+            bw_y_axis_mean = moving_mean(bw_y_axis)
+            bw_y_axis_median = moving_median(bw_y_axis)
+
+            bw_y_axis_int = [np.interp(x, bw_x_axis_days, bw_y_axis) for x in x_axis_days]
+            bw_y_axis_mean_int = [np.interp(x, bw_x_axis_days, bw_y_axis_mean) for x in x_axis_days]
+            bw_y_axis_median_int = [np.interp(x, bw_x_axis_days, bw_y_axis_median) for x in x_axis_days]
+
+            print(bw_y_axis_int)
+            print(bw_y_axis_mean_int)
+            print(bw_y_axis_median_int)
+
+            for j, rm in enumerate(rms[:1]):
+                this_axs.fill_between(x_axis,
+                                      np.array([x[j] for x in rm_axis_lower])/np.array(bw_y_axis_int)**(2/3),
+                                      np.array([x[j] for x in rm_axis_upper])/np.array(bw_y_axis_int)**(2/3),
+                                      color='lightgrey', alpha=0.2)
+                this_axs.fill_between(x_axis,
+                                      np.array([x[j] for x in rm_axis_lower])/np.array(bw_y_axis_mean_int)**(2/3),
+                                      np.array([x[j] for x in rm_axis_upper])/np.array(bw_y_axis_mean_int)**(2/3),
+                                      color='orange', alpha=0.2)
+                this_axs.fill_between(x_axis,
+                                      np.array([x[j] for x in rm_axis_lower])/np.array(bw_y_axis_median_int)**(2/3),
+                                      np.array([x[j] for x in rm_axis_upper])/np.array(bw_y_axis_median_int)**(2/3),
+                                      color='blue', alpha=0.2)
+                this_axs.plot(x_axis, np.array([x[j] for x in rm_axis])/np.array(bw_y_axis_int)**(2/3),
+                              color='k', linestyle=linestyles[j])
+                this_axs.plot(x_axis, np.array([x[j] for x in rm_axis])/np.array(bw_y_axis_median_int)**(2/3),
+                              color='orange', linestyle=linestyles[j])
+                this_axs.plot(x_axis, np.array([x[j] for x in rm_axis])/np.array(bw_y_axis_mean_int)**(2/3),
+                              color='blue', linestyle=linestyles[j])
+
+
+
+        else:
+            for j, rm in enumerate(rms):
+                this_axs.fill_between(x_axis, [x[j] for x in rm_axis_lower], [x[j] for x in rm_axis_upper], color='lightgrey', alpha=0.5)
+                this_axs.plot(x_axis, [x[j] for x in rm_axis], color='k', linestyle=linestyles[j])
+
         this_axs.xaxis.set_major_locator(years)
         this_axs.xaxis.set_major_formatter(years_fmt)
         this_axs.xaxis.set_minor_locator(months)

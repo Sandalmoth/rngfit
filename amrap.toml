@@ -2,7 +2,7 @@ exercises = [ "squat", "deadlift", "benchpress", "press", "frontsquat", "row",]
 
 [squat]
 rounding = 2.5
-amraps = "date,reps,weight,rir\r\n2019-07-01,1,155,0\r\n2019-07-01,10,120,0\r\n"
+amraps = "date,reps,weight,rir\r\n2019-07-01,1,155,0\r\n2019-07-01,10,120,0\r\n2020-06-1,7,135,0\r\n2020-06-3,3,150,0\r\n2020-06-5,5,142.5,0\r\n"
 
 [deadlift]
 rounding = 2.5
@@ -25,5 +25,5 @@ rounding = 2.5
 amraps = "date,reps,weight,rir\r\n2019-07-01,1,130,0\r\n2019-07-01,10,100,0\r\n"
 
 [measurements]
-data = "date,name,measurement\r\n"
+data = "date,name,measurement\r\n2020-06-1,bodyweight,97.3\r\n2020-06-3,bodyweight,98.0\r\n2020-06-5,bodyweight,96.2\r\n"
 options = [ "bodyweight",]
